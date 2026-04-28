@@ -10,6 +10,8 @@ interface ContentState {
   updateContentStatus: (propertyId: string, contentId: string, status: ContentStatus) => void;
   updateContentBody: (propertyId: string, contentId: string, body: string) => void;
   replaceContent: (propertyId: string, contentId: string, newTitle: string, newBody: string) => void;
+  updateContentImage: (propertyId: string, contentId: string, imageUrl: string) => void;
+  applyImagesByPlatform: (propertyId: string, images: Partial<Record<ContentPlatform, string>>) => void;
   getContent: (propertyId: string) => GeneratedContent[];
   getContentByPlatform: (propertyId: string, platform: ContentPlatform) => GeneratedContent | undefined;
   getApprovedCount: (propertyId: string) => number;
@@ -51,6 +53,27 @@ export const useContentStore = create<ContentState>()(
             [propertyId]: (state.contentByProperty[propertyId] || []).map((c) =>
               c.id === contentId ? { ...c, title: newTitle, body: newBody, status: "generated" as ContentStatus } : c
             ),
+          },
+        }));
+      },
+      updateContentImage: (propertyId, contentId, imageUrl) => {
+        set((state) => ({
+          contentByProperty: {
+            ...state.contentByProperty,
+            [propertyId]: (state.contentByProperty[propertyId] || []).map((c) =>
+              c.id === contentId ? { ...c, imageUrl } : c
+            ),
+          },
+        }));
+      },
+      applyImagesByPlatform: (propertyId, images) => {
+        set((state) => ({
+          contentByProperty: {
+            ...state.contentByProperty,
+            [propertyId]: (state.contentByProperty[propertyId] || []).map((c) => {
+              const url = images[c.platform];
+              return url ? { ...c, imageUrl: url } : c;
+            }),
           },
         }));
       },

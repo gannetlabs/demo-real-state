@@ -14,7 +14,7 @@ There are no tests. `npm run build` is the primary correctness check — it runs
 
 ## What This Is
 
-**PropIA** — a sales demo MVP for a SaaS platform targeting real estate agencies. It simulates AI-powered multichannel content generation from a single property upload. No backend; all state lives in Zustand stores persisted to localStorage.
+**PropIA** — a sales demo MVP for a SaaS platform targeting real estate agencies. It demonstrates AI-powered multichannel content generation from a single property upload. State lives in Zustand stores persisted to localStorage; images are generated server-side via OpenAI and stored in Supabase Storage.
 
 Demo credentials: `martin@garciaasociados.com` / `demo2026`
 
@@ -22,8 +22,8 @@ Demo credentials: `martin@garciaasociados.com` / `demo2026`
 
 ```
 /login → /dashboard → /dashboard/propiedades/nueva
-  → /dashboard/generar/[propertyId]      (fake AI generation animation ~5s)
-  → /dashboard/contenido/[propertyId]    (preview + approve/edit/regenerate)
+  → /dashboard/generar/[propertyId]      (8-step animation + real API call to /api/generate-images)
+  → /dashboard/contenido/[propertyId]    (preview + approve/edit/regenerate, shows real images)
   → /dashboard/calendario/[propertyId]   (weekly schedule, day selectors)
   → /dashboard/confirmacion/[propertyId] (confirm + success modal with confetti)
 ```
@@ -45,13 +45,25 @@ Four stores in `src/store/`:
 
 The property store's Zustand initial state is `mockProperties` from `src/data/mock-properties.ts` — if localStorage is cleared, the 3 demo properties reappear automatically.
 
-### Content Generation (Simulated)
+### Content Generation
 
-`src/data/mock-content.ts` exports:
+Copy is always mock. Images are real (generated server-side by OpenAI or reused from Supabase).
+
+**Mock copy** — `src/data/mock-content.ts` exports:
 - `generateMockContent(property)` — returns 7 `GeneratedContent` objects (one per platform) with copy interpolated from property fields
 - `alternateContent` — swap-in text used when the user clicks "Regenerar"
 
-The generation page calls `generateMockContent` after a timed animation and stores the result via `useContentStore.setContent()`.
+**Image generation** — `POST /api/generate-images` (`src/app/api/generate-images/route.ts`):
+1. Receives `{ property, referenceImageDataUrl }` (base64 data URL of the first uploaded photo).
+2. Calls OpenAI `gpt-image-1` via `src/lib/openai.ts` to generate a hero image.
+3. Resizes it to each platform's dimensions via `sharp` (`src/lib/image-resize.ts`, dimensions in `src/data/platform-dimensions.ts`).
+4. Uploads all 7 variants to Supabase Storage and returns a `Record<ContentPlatform, string>` of public URLs (`src/lib/supabase.ts`).
+
+The generation page fires this API call in parallel with the 8-step animation, merges the image URLs into the mock content array, and navigates when both complete.
+
+**Demo mode** — set `USE_DEMO_IMAGES=true` in `.env.local` to skip OpenAI entirely: the API route lists the bucket and returns the most recently generated set of 7 images. Useful during sales presentations to avoid token costs. Clear or set to `false` to re-enable real generation.
+
+**Property photos** are stored as base64 data URLs (`data:image/...;base64,...`) in the property store — NOT blob URLs. This is required because blob URLs die on page reload and the API route needs the raw bytes to send to OpenAI.
 
 ### Platform Content Types
 
@@ -79,3 +91,24 @@ A 5-step progress bar (Datos → Generación → Contenido → Calendario → Co
 ### Calendar Default Schedule
 
 `useCalendarStore.createDefaultSchedule()` maps platforms to days on first visit: Facebook→Mon, Instagram Story→Tue, Instagram Carousel→Wed, LinkedIn→Thu, TikTok→Fri.
+
+### Image Server Libs (`src/lib/`)
+
+| File | Responsibility |
+|---|---|
+| `openai.ts` | OpenAI singleton + `generateHeroImage(property, referenceDataUrl?)` — calls `gpt-image-1` |
+| `supabase.ts` | Supabase server-side client (service role) + `uploadGeneratedImage()` + `listLatestDemoImages()` |
+| `image-resize.ts` | `resizeForPlatform(buffer, platform)` — sharp resize/crop to platform dimensions |
+
+### Environment Variables
+
+Required in `.env.local` (see `.env.local.example` for a template):
+
+| Variable | Purpose |
+|---|---|
+| `OPENAI_API_KEY` | Server-side only. Calls `gpt-image-1`. |
+| `SUPABASE_URL` | Server-side. Self-hosted Supabase endpoint. |
+| `SUPABASE_SERVICE_ROLE_KEY` | Server-side. JWT for uploading to Storage. |
+| `NEXT_PUBLIC_SUPABASE_URL` | Client-side. Used by `next/image` to render Supabase-hosted images. |
+| `SUPABASE_STORAGE_BUCKET` | Bucket name (default: `propia-generated-images`). |
+| `USE_DEMO_IMAGES` | Set to `true` to skip OpenAI and reuse existing bucket images. |

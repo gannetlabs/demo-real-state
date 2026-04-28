@@ -20,6 +20,7 @@ export interface GeneratedContent {
   callToAction?: string;
   slides?: CarouselSlide[];
   scriptSections?: ScriptSection[];
+  imageUrl?: string;
   createdAt: string;
 }
 
