@@ -19,6 +19,8 @@ import { usePropertyStore } from "@/store/use-property-store";
 import { useContentStore } from "@/store/use-content-store";
 import { generateMockContent } from "@/data/mock-content";
 import { cn } from "@/lib/utils";
+import type { ContentPlatform } from "@/types/content";
+import type { GenerateImagesResponse } from "@/app/api/generate-images/route";
 
 /* -------------------------------------------------------------------------- */
 /*  Step Indicator (inline, consistent with property form)                    */
@@ -115,6 +117,12 @@ export default function GenerarContenidoPage({
   );
   const [allDone, setAllDone] = useState(false);
 
+  /* -- Image generation -- */
+  type ImagesStatus = "loading" | "ready" | "error";
+  const [imagesStatus, setImagesStatus] = useState<ImagesStatus>("loading");
+  const imagesRef = useRef<Partial<Record<ContentPlatform, string>>>({});
+  const imagesRequestedRef = useRef(false);
+
   /* -- Typewriter -- */
   const [displayedText, setDisplayedText] = useState("");
   const typewriterIndexRef = useRef(0);
@@ -143,6 +151,40 @@ export default function GenerarContenidoPage({
       }
     }, 18);
   }, []);
+
+  /* -------------------------------------------------------------------------- */
+  /*  Kick off image generation as soon as we have the property                 */
+  /* -------------------------------------------------------------------------- */
+
+  useEffect(() => {
+    if (imagesRequestedRef.current) return;
+    const property = getProperty(propertyId);
+    if (!property) return;
+    imagesRequestedRef.current = true;
+
+    const referenceImageDataUrl = property.photos[0]?.url;
+
+    fetch("/api/generate-images", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ property, referenceImageDataUrl }),
+    })
+      .then(async (res) => {
+        if (!res.ok) {
+          const detail = await res.text();
+          throw new Error(`API ${res.status}: ${detail}`);
+        }
+        return res.json() as Promise<GenerateImagesResponse>;
+      })
+      .then((data) => {
+        imagesRef.current = data.images;
+        setImagesStatus("ready");
+      })
+      .catch((err) => {
+        console.error("[generar] image generation failed", err);
+        setImagesStatus("error");
+      });
+  }, [propertyId, getProperty]);
 
   /* -------------------------------------------------------------------------- */
   /*  Sequential step animation                                                 */
@@ -198,19 +240,25 @@ export default function GenerarContenidoPage({
 
   useEffect(() => {
     if (!allDone) return;
+    if (imagesStatus === "loading") return;
 
     const navTimeout = setTimeout(() => {
       const property = getProperty(propertyId);
       if (property) {
-        const content = generateMockContent(property);
-        setContent(propertyId, content);
+        const baseContent = generateMockContent(property);
+        const images = imagesRef.current;
+        const enriched = baseContent.map((c) => {
+          const url = images[c.platform];
+          return url ? { ...c, imageUrl: url } : c;
+        });
+        setContent(propertyId, enriched);
         updatePropertyStatus(propertyId, "content_generated");
       }
       router.push(`/dashboard/contenido/${propertyId}`);
     }, 1000);
 
     return () => clearTimeout(navTimeout);
-  }, [allDone, propertyId, getProperty, setContent, updatePropertyStatus, router]);
+  }, [allDone, imagesStatus, propertyId, getProperty, setContent, updatePropertyStatus, router]);
 
   /* -------------------------------------------------------------------------- */
   /*  Render helpers                                                            */
@@ -475,12 +523,37 @@ export default function GenerarContenidoPage({
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
                 transition={{ type: "spring", stiffness: 300, damping: 20 }}
-                className="inline-flex items-center gap-2 bg-emerald-50 text-emerald-700 px-5 py-2.5 rounded-full border border-emerald-200 text-sm font-semibold"
+                className={cn(
+                  "inline-flex items-center gap-2 px-5 py-2.5 rounded-full border text-sm font-semibold",
+                  imagesStatus === "loading"
+                    ? "bg-blue-50 text-blue-700 border-blue-200"
+                    : imagesStatus === "error"
+                      ? "bg-amber-50 text-amber-700 border-amber-200"
+                      : "bg-emerald-50 text-emerald-700 border-emerald-200"
+                )}
               >
-                <Check className="w-4 h-4" />
-                Contenido generado exitosamente
+                {imagesStatus === "loading" ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Renderizando imagenes para cada red social...
+                  </>
+                ) : imagesStatus === "error" ? (
+                  <>
+                    <Check className="w-4 h-4" />
+                    Contenido listo (imagenes no disponibles)
+                  </>
+                ) : (
+                  <>
+                    <Check className="w-4 h-4" />
+                    Contenido generado exitosamente
+                  </>
+                )}
               </motion.div>
-              <p className="text-xs text-slate-400 mt-2">Redirigiendo al editor de contenido...</p>
+              <p className="text-xs text-slate-400 mt-2">
+                {imagesStatus === "loading"
+                  ? "Esperando imagenes de OpenAI antes de continuar..."
+                  : "Redirigiendo al editor de contenido..."}
+              </p>
             </motion.div>
           )}
         </AnimatePresence>

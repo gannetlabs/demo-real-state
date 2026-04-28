@@ -227,13 +227,25 @@ export default function NuevaPropiedad() {
 
   /* ---- Submit ---- */
   const handleSubmit = useCallback(
-    (e: React.FormEvent) => {
+    async (e: React.FormEvent) => {
       e.preventDefault();
       setSubmitted(true);
 
       if (!isFormValid(formData, photos)) return;
 
       setIsSubmitting(true);
+
+      const photoData = await Promise.all(
+        photos.map(
+          (p) =>
+            new Promise<string>((resolve, reject) => {
+              const reader = new FileReader();
+              reader.onload = () => resolve(reader.result as string);
+              reader.onerror = () => reject(reader.error);
+              reader.readAsDataURL(p.file);
+            })
+        )
+      );
 
       const propertyId = addProperty({
         title: formData.title.trim(),
@@ -246,7 +258,7 @@ export default function NuevaPropiedad() {
         description: formData.description.trim(),
         photos: photos.map((p, idx) => ({
           id: p.id,
-          url: p.url,
+          url: photoData[idx],
           alt: `${formData.title.trim()} - Foto ${idx + 1}`,
           order: idx,
         })),

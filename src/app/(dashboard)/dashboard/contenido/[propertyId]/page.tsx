@@ -2,6 +2,7 @@
 
 import { useState, use } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { motion } from "motion/react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
@@ -252,10 +253,21 @@ function WebListingContent({
 }) {
   return (
     <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
-      {/* Hero image placeholder */}
-      <div className="relative bg-gradient-to-br from-slate-100 to-slate-200 h-64 flex items-center justify-center">
-        <Home className="h-16 w-16 text-slate-300" />
-        <div className="absolute top-4 right-4">
+      {/* Hero image */}
+      <div className="relative bg-gradient-to-br from-slate-100 to-slate-200 h-64 flex items-center justify-center overflow-hidden">
+        {content.imageUrl ? (
+          <Image
+            src={content.imageUrl}
+            alt={content.title}
+            fill
+            className="object-cover"
+            sizes="(min-width: 1024px) 1024px, 100vw"
+            unoptimized
+          />
+        ) : (
+          <Home className="h-16 w-16 text-slate-300" />
+        )}
+        <div className="absolute top-4 right-4 z-10">
           <span className="bg-[#d4a853] text-[#1a2332] px-3 py-1 rounded-full text-sm font-bold">
             Destacada
           </span>
@@ -351,6 +363,18 @@ function BlogArticleContent({ content }: { content: GeneratedContent }) {
 
   return (
     <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+      {content.imageUrl && (
+        <div className="relative w-full aspect-1200/630 bg-slate-100">
+          <Image
+            src={content.imageUrl}
+            alt={content.title}
+            fill
+            className="object-cover"
+            sizes="(min-width: 1024px) 1024px, 100vw"
+            unoptimized
+          />
+        </div>
+      )}
       <div className="border-l-4 border-[#d4a853] p-8 space-y-4">
         {/* Header */}
         <div className="space-y-3">
@@ -416,10 +440,21 @@ function InstagramCarouselContent({ content }: { content: GeneratedContent }) {
         </div>
 
         {/* Image area */}
-        <div className="relative aspect-square bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center">
-          <Home className="h-16 w-16 text-slate-300" />
+        <div className="relative aspect-square bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center overflow-hidden">
+          {content.imageUrl ? (
+            <Image
+              src={content.imageUrl}
+              alt={content.title}
+              fill
+              className="object-cover"
+              sizes="400px"
+              unoptimized
+            />
+          ) : (
+            <Home className="h-16 w-16 text-slate-300" />
+          )}
           {slides[activeSlide] && (
-            <div className="absolute bottom-4 left-4 right-4 bg-black/40 backdrop-blur-sm rounded-lg p-3">
+            <div className="absolute bottom-4 left-4 right-4 bg-black/40 backdrop-blur-sm rounded-lg p-3 z-10">
               <p className="text-white text-sm font-medium">
                 {slides[activeSlide].caption}
               </p>
@@ -505,10 +540,24 @@ function InstagramStoryContent({
             <p className="text-white/50 text-xs">2h</p>
           </div>
 
-          {/* Background image placeholder */}
-          <div className="absolute inset-0 flex items-center justify-center opacity-20">
-            <Home className="h-32 w-32 text-white" />
-          </div>
+          {/* Background image */}
+          {content.imageUrl ? (
+            <>
+              <Image
+                src={content.imageUrl}
+                alt={content.title}
+                fill
+                className="object-cover"
+                sizes="280px"
+                unoptimized
+              />
+              <div className="absolute inset-0 bg-linear-to-b from-slate-900/60 via-slate-900/30 to-slate-900/80" />
+            </>
+          ) : (
+            <div className="absolute inset-0 flex items-center justify-center opacity-20">
+              <Home className="h-32 w-32 text-white" />
+            </div>
+          )}
 
           {/* Content overlay */}
           <div className="flex-1 flex flex-col items-center justify-center px-6 relative z-10 gap-4">
@@ -574,9 +623,20 @@ function FacebookPostContent({ content }: { content: GeneratedContent }) {
         </p>
       </div>
 
-      {/* Image placeholder */}
-      <div className="bg-gradient-to-br from-slate-100 to-slate-200 aspect-video flex items-center justify-center">
-        <Home className="h-16 w-16 text-slate-300" />
+      {/* Image */}
+      <div className="relative bg-gradient-to-br from-slate-100 to-slate-200 aspect-video flex items-center justify-center overflow-hidden">
+        {content.imageUrl ? (
+          <Image
+            src={content.imageUrl}
+            alt={content.title}
+            fill
+            className="object-cover"
+            sizes="(min-width: 1024px) 512px, 100vw"
+            unoptimized
+          />
+        ) : (
+          <Home className="h-16 w-16 text-slate-300" />
+        )}
       </div>
 
       {/* Reactions bar */}
@@ -642,9 +702,20 @@ function LinkedInPostContent({ content }: { content: GeneratedContent }) {
         </p>
       </div>
 
-      {/* Image placeholder */}
-      <div className="bg-gradient-to-br from-slate-100 to-slate-200 aspect-video flex items-center justify-center">
-        <Home className="h-16 w-16 text-slate-300" />
+      {/* Image */}
+      <div className="relative bg-gradient-to-br from-slate-100 to-slate-200 aspect-video flex items-center justify-center overflow-hidden">
+        {content.imageUrl ? (
+          <Image
+            src={content.imageUrl}
+            alt={content.title}
+            fill
+            className="object-cover"
+            sizes="(min-width: 1024px) 512px, 100vw"
+            unoptimized
+          />
+        ) : (
+          <Home className="h-16 w-16 text-slate-300" />
+        )}
       </div>
 
       {/* Engagement stats */}
@@ -707,6 +778,33 @@ function TikTokScriptContent({ content }: { content: GeneratedContent }) {
         </div>
         <Video className="h-5 w-5 text-[#ff0050]" />
       </div>
+
+      {/* Video cover preview */}
+      {content.imageUrl && (
+        <div className="relative mx-6 mt-6 rounded-xl overflow-hidden border border-slate-700">
+          <div className="relative aspect-9/16 max-h-80 mx-auto bg-slate-800">
+            <Image
+              src={content.imageUrl}
+              alt={`${content.title} - cover`}
+              fill
+              className="object-cover"
+              sizes="240px"
+              unoptimized
+            />
+            <div className="absolute inset-0 bg-linear-to-t from-slate-900/80 via-transparent to-transparent" />
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="w-14 h-14 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center border border-white/40">
+                <Play className="h-6 w-6 text-white fill-white" />
+              </div>
+            </div>
+            <div className="absolute bottom-3 left-3 right-3">
+              <span className="text-[10px] uppercase tracking-widest text-white/70 font-semibold">
+                Cover preview
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Script sections */}
       <div className="p-6 space-y-1">
