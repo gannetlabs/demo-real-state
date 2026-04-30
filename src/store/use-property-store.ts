@@ -12,6 +12,7 @@ interface PropertyState {
   updatePropertyStatus: (id: string, status: Property["status"]) => void;
   setCurrentProperty: (id: string | null) => void;
   getProperty: (id: string) => Property | undefined;
+  reset: () => void;
 }
 
 export const usePropertyStore = create<PropertyState>()(
@@ -44,6 +45,7 @@ export const usePropertyStore = create<PropertyState>()(
       },
       setCurrentProperty: (id) => set({ currentPropertyId: id }),
       getProperty: (id) => get().properties.find((p) => p.id === id),
+      reset: () => set({ properties: mockProperties, currentPropertyId: null }),
     }),
     { name: "propia-properties" }
   )

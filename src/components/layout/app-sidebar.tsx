@@ -34,7 +34,7 @@ export function AppSidebar() {
       icon: Calendar,
       disabled: !calendarPropertyId,
     },
-    { href: "#", label: "Configuración", icon: Settings, disabled: true },
+    { href: "/dashboard/configuracion", label: "Configuración", icon: Settings, disabled: false },
   ];
 
   const handleLogout = () => {
