@@ -9,6 +9,12 @@ interface CalendarState {
   scheduleByProperty: Record<string, ScheduledPublication[]>;
   createDefaultSchedule: (propertyId: string, contents: GeneratedContent[]) => void;
   movePublication: (propertyId: string, publicationId: string, newDay: DayOfWeek) => void;
+  movePublicationSlot: (
+    propertyId: string,
+    publicationId: string,
+    newDay: DayOfWeek,
+    newTime: string
+  ) => void;
   confirmSchedule: (propertyId: string) => void;
   getSchedule: (propertyId: string) => ScheduledPublication[];
   reset: () => void;
@@ -53,6 +59,18 @@ export const useCalendarStore = create<CalendarState>()(
             ...state.scheduleByProperty,
             [propertyId]: (state.scheduleByProperty[propertyId] || []).map((p) =>
               p.id === publicationId ? { ...p, dayOfWeek: newDay } : p
+            ),
+          },
+        }));
+      },
+      movePublicationSlot: (propertyId, publicationId, newDay, newTime) => {
+        set((state) => ({
+          scheduleByProperty: {
+            ...state.scheduleByProperty,
+            [propertyId]: (state.scheduleByProperty[propertyId] || []).map((p) =>
+              p.id === publicationId
+                ? { ...p, dayOfWeek: newDay, timeSlot: newTime }
+                : p
             ),
           },
         }));

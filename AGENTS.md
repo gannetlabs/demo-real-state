@@ -18,6 +18,12 @@ Sales demo MVP for a real estate SaaS. Read `CLAUDE.md` for the full architectur
 - **Tailwind v4**: use `bg-linear-to-b` (not `bg-gradient-to-b`), `aspect-[w/h]` syntax for custom ratios.
 - **Demo reset**: `/dashboard/configuracion` exposes a reset action backed by `POST /api/reset-demo`, which calls `pruneStorageKeepingLatestSet` in `src/lib/supabase.ts`. Each persisted store (`use-property-store`, `use-content-store`, `use-calendar-store`) has a `reset()` action; `use-auth-store` does not.
 
+### Calendar drag-and-drop
+
+Step 4 uses `@dnd-kit/core` (`DndContext` + `useDraggable` + `useDroppable`) over a 13-hour timeline (08:00–20:00, 1 h granularity). Collision detection: `closestCenter`. Drop targets are `${day}__${hour}` slots; on drop, call `useCalendarStore.movePublicationSlot(propertyId, pubId, day, time)` — it updates day and time atomically. Same-slot collisions stack via `(offsetX, offsetY)` per stack index sorted by id. See `src/app/(dashboard)/dashboard/calendario/[propertyId]/page.tsx` and `src/store/use-calendar-store.ts`.
+
+**Zustand selector rule**: select raw sub-state (`s.scheduleByProperty[propertyId]`), never a getter method (`s.getSchedule`) — methods are stable references and won't trigger re-renders when data changes. Use a module-level `EMPTY_*` constant as the nullish-coalescing fallback to avoid creating a new array each render.
+
 ### Image generation pipeline
 
 `POST /api/generate-images` → `src/lib/openai.ts` → `src/lib/image-resize.ts` → `src/lib/supabase.ts`.
