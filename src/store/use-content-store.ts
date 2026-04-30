@@ -15,6 +15,7 @@ interface ContentState {
   getContent: (propertyId: string) => GeneratedContent[];
   getContentByPlatform: (propertyId: string, platform: ContentPlatform) => GeneratedContent | undefined;
   getApprovedCount: (propertyId: string) => number;
+  reset: () => void;
 }
 
 export const useContentStore = create<ContentState>()(
@@ -84,6 +85,7 @@ export const useContentStore = create<ContentState>()(
         (get().contentByProperty[propertyId] || []).filter(
           (c) => c.status === "approved" || c.status === "edited"
         ).length,
+      reset: () => set({ contentByProperty: {} }),
     }),
     { name: "propia-content" }
   )

@@ -11,6 +11,7 @@ interface CalendarState {
   movePublication: (propertyId: string, publicationId: string, newDay: DayOfWeek) => void;
   confirmSchedule: (propertyId: string) => void;
   getSchedule: (propertyId: string) => ScheduledPublication[];
+  reset: () => void;
 }
 
 const defaultDayMapping: { platform: string; day: DayOfWeek; time: string }[] = [
@@ -68,6 +69,7 @@ export const useCalendarStore = create<CalendarState>()(
         }));
       },
       getSchedule: (propertyId) => get().scheduleByProperty[propertyId] || [],
+      reset: () => set({ scheduleByProperty: {} }),
     }),
     { name: "propia-calendar" }
   )

@@ -30,6 +30,8 @@ Demo credentials: `martin@garciaasociados.com` / `demo2026`
 
 All post-login screens live under `src/app/(dashboard)/dashboard/` and share the layout in `src/app/(dashboard)/layout.tsx`, which enforces auth via `useAuthStore`.
 
+`/dashboard/configuracion` exposes a "Restaurar datos de demo" action that wipes the three persisted Zustand stores back to seed state and prunes Supabase Storage of all generated images except the latest complete set. Reusable between sales demos.
+
 ## Architecture
 
 ### State (Zustand + localStorage)
@@ -44,6 +46,8 @@ Four stores in `src/store/`:
 | `use-calendar-store` | `propia-calendar` | Weekly schedule keyed by `propertyId` |
 
 The property store's Zustand initial state is `mockProperties` from `src/data/mock-properties.ts` — if localStorage is cleared, the 3 demo properties reappear automatically.
+
+Each of the three persisted stores (`use-property-store`, `use-content-store`, `use-calendar-store`) exposes a `reset()` action used by the Configuración page: property store re-seeds to `mockProperties`, the other two clear their per-property maps. `use-auth-store` has no `reset()` — the user stays logged in across resets.
 
 ### Content Generation
 
@@ -62,6 +66,8 @@ Copy is always mock. Images are real (generated server-side by OpenAI or reused 
 The generation page fires this API call in parallel with the 8-step animation, merges the image URLs into the mock content array, and navigates when both complete.
 
 **Demo mode** — set `USE_DEMO_IMAGES=true` in `.env.local` to skip OpenAI entirely: the API route lists the bucket and returns the most recently generated set of 7 images. Useful during sales presentations to avoid token costs. Clear or set to `false` to re-enable real generation.
+
+**Storage cleanup** — `POST /api/generate-images` accumulates `{propertyId}/{timestamp}/*.jpg` folders on every real run. `POST /api/reset-demo` calls `pruneStorageKeepingLatestSet()` from `src/lib/supabase.ts`, which keeps only the most recent complete set (the one `listLatestDemoImages` would return) and deletes everything else. This invalidates the in-process `cachedDemoImages` cache so the next demo-mode request recomputes from the bucket. Used by the Configuración page; not exposed elsewhere.
 
 **Property photos** are stored as base64 data URLs (`data:image/...;base64,...`) in the property store — NOT blob URLs. This is required because blob URLs die on page reload and the API route needs the raw bytes to send to OpenAI.
 
@@ -97,7 +103,7 @@ A 5-step progress bar (Datos → Generación → Contenido → Calendario → Co
 | File | Responsibility |
 |---|---|
 | `openai.ts` | OpenAI singleton + `generateHeroImage(property, referenceDataUrl?)` — calls `gpt-image-1` |
-| `supabase.ts` | Supabase server-side client (service role) + `uploadGeneratedImage()` + `listLatestDemoImages()` |
+| `supabase.ts` | Supabase server-side client (service role) + `uploadGeneratedImage()` + `listLatestDemoImages()` + `pruneStorageKeepingLatestSet()` |
 | `image-resize.ts` | `resizeForPlatform(buffer, platform)` — sharp resize/crop to platform dimensions |
 
 ### Environment Variables
