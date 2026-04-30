@@ -83,7 +83,7 @@ export const useContentStore = create<ContentState>()(
         (get().contentByProperty[propertyId] || []).find((c) => c.platform === platform),
       getApprovedCount: (propertyId) =>
         (get().contentByProperty[propertyId] || []).filter(
-          (c) => c.status === "approved" || c.status === "edited"
+          (c) => c.status === "approved"
         ).length,
       reset: () => set({ contentByProperty: {} }),
     }),

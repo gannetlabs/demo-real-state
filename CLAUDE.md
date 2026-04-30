@@ -51,6 +51,8 @@ The property store's Zustand initial state is `mockProperties` from `src/data/mo
 
 Each of the three persisted stores (`use-property-store`, `use-content-store`, `use-calendar-store`) exposes a `reset()` action used by the Configuración page: property store re-seeds to `mockProperties`, the other two clear their per-property maps. `use-auth-store` has no `reset()` — the user stays logged in across resets.
 
+`getApprovedCount` counts only `status === "approved"`. The `"edited"` status (set by `updateContentBody` when the user saves an edit) does **not** count — the user must click "Aprobar" again after editing.
+
 ### Content Generation
 
 Copy is always mock. Images are real (generated server-side by OpenAI or reused from Supabase).
@@ -72,6 +74,12 @@ The generation page fires this API call in parallel with the 8-step animation, m
 **Storage cleanup** — `POST /api/generate-images` accumulates `{propertyId}/{timestamp}/*.jpg` folders on every real run. `POST /api/reset-demo` calls `pruneStorageKeepingLatestSet()` from `src/lib/supabase.ts`, which keeps only the most recent complete set (the one `listLatestDemoImages` would return) and deletes everything else. This invalidates the in-process `cachedDemoImages` cache so the next demo-mode request recomputes from the bucket. Used by the Configuración page; not exposed elsewhere.
 
 **Property photos** are stored as base64 data URLs (`data:image/...;base64,...`) in the property store — NOT blob URLs. This is required because blob URLs die on page reload and the API route needs the raw bytes to send to OpenAI.
+
+### Content Preview UX (`/dashboard/contenido/[propertyId]`)
+
+The page uses **controlled Tabs** (`value` + `onValueChange`) backed by a local `useState<number>(0)`. Clicking "Aprobar" advances to the next tab in order (`Math.min(index + 1, 6)`); the last tab (TikTok, index 6) stays put. The callback flows: `ContentPreviewPage.handleApproved` → `ContentCardWrapper.onApproved` → `ActionsBar.onApproved` → called after `updateContentStatus`.
+
+Saving an edit (`updateContentBody`) sets the item's `status` to `"edited"`, which is not counted by `getApprovedCount`. The "Aprobado" badge reverts to "Aprobar" and the header counter decrements — the user must re-approve.
 
 ### Platform Content Types
 
