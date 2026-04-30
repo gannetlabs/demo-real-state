@@ -24,6 +24,10 @@ Step 4 uses `@dnd-kit/core` (`DndContext` + `useDraggable` + `useDroppable`) ove
 
 **Zustand selector rule**: select raw sub-state (`s.scheduleByProperty[propertyId]`), never a getter method (`s.getSchedule`) — methods are stable references and won't trigger re-renders when data changes. Use a module-level `EMPTY_*` constant as the nullish-coalescing fallback to avoid creating a new array each render.
 
+### Content preview approval semantics
+
+`getApprovedCount` (in `use-content-store`) counts only `status === "approved"`. The `"edited"` status does not count — saving an edit requires the user to re-approve. The content preview page (`contenido/[propertyId]`) uses controlled Tabs: approving auto-advances to the next tab in sequence; TikTok (last) stays put. Callback chain: `handleApproved` (page) → `onApproved` prop (ContentCardWrapper → ActionsBar).
+
 ### Image generation pipeline
 
 `POST /api/generate-images` → `src/lib/openai.ts` → `src/lib/image-resize.ts` → `src/lib/supabase.ts`.

@@ -108,10 +108,12 @@ function ActionsBar({
   content,
   propertyId,
   onEdit,
+  onApproved,
 }: {
   content: GeneratedContent;
   propertyId: string;
   onEdit: () => void;
+  onApproved?: () => void;
 }) {
   const { updateContentStatus, replaceContent } = useContentStore();
   const [regenerating, setRegenerating] = useState(false);
@@ -119,6 +121,7 @@ function ActionsBar({
   const handleApprove = () => {
     updateContentStatus(propertyId, content.id, "approved");
     toast.success("Contenido aprobado");
+    onApproved?.();
   };
 
   const handleRegenerate = () => {
@@ -173,10 +176,12 @@ function ContentCardWrapper({
   content,
   propertyId,
   children,
+  onApproved,
 }: {
   content: GeneratedContent;
   propertyId: string;
   children: React.ReactNode;
+  onApproved?: () => void;
 }) {
   const { updateContentBody } = useContentStore();
   const [editing, setEditing] = useState(false);
@@ -234,6 +239,7 @@ function ContentCardWrapper({
               setEditText(content.body);
               setEditing(true);
             }}
+            onApproved={onApproved}
           />
         </div>
       )}
@@ -878,6 +884,12 @@ export default function ContentPreviewPage({
   const approvedCount = useContentStore((s) => s.getApprovedCount(propertyId));
   const property = usePropertyStore((s) => s.getProperty(propertyId));
 
+  const [activeTab, setActiveTab] = useState<number>(0);
+
+  const handleApproved = () => {
+    setActiveTab((prev) => Math.min(prev + 1, platformTabs.length - 1));
+  };
+
   const getContentForPlatform = (platform: ContentPlatform) =>
     allContent.find((c) => c.platform === platform);
 
@@ -930,7 +942,7 @@ export default function ContentPreviewPage({
       </div>
 
       {/* Tabs */}
-      <Tabs defaultValue={0}>
+      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as number)}>
         <TabsList className="w-full flex flex-wrap h-auto gap-1 bg-slate-100/80 p-1 rounded-xl">
           {platformTabs.map((tab, index) => {
             const Icon = tab.icon;
@@ -961,7 +973,11 @@ export default function ContentPreviewPage({
           return (
             <TabsContent key={tab.platform} value={index}>
               <div className="pt-4">
-                <ContentCardWrapper content={content} propertyId={propertyId}>
+                <ContentCardWrapper
+                  content={content}
+                  propertyId={propertyId}
+                  onApproved={handleApproved}
+                >
                   {tab.platform === "web_listing" && (
                     <WebListingContent content={content} property={property} />
                   )}
