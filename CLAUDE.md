@@ -24,7 +24,7 @@ Demo credentials: `martin@garciaasociados.com` / `demo2026`
 /login → /dashboard → /dashboard/propiedades/nueva
   → /dashboard/generar/[propertyId]      (8-step animation + real API call to /api/generate-images)
   → /dashboard/contenido/[propertyId]    (preview + approve/edit/regenerate, shows real images)
-  → /dashboard/calendario/[propertyId]   (weekly schedule, day selectors)
+  → /dashboard/calendario/[propertyId]   (weekly timeline 08:00–20:00, drag & drop publications across days/hours)
   → /dashboard/confirmacion/[propertyId] (confirm + success modal with confetti)
 ```
 
@@ -46,6 +46,8 @@ Four stores in `src/store/`:
 | `use-calendar-store` | `propia-calendar` | Weekly schedule keyed by `propertyId` |
 
 The property store's Zustand initial state is `mockProperties` from `src/data/mock-properties.ts` — if localStorage is cleared, the 3 demo properties reappear automatically.
+
+**Zustand selector rule**: always select the raw sub-state, not a getter method, when the component needs to react to changes. Selecting a method (e.g. `s.getSchedule`) returns a stable function reference — Zustand won't trigger a re-render when the underlying data changes. Select `s.scheduleByProperty[propertyId]` directly instead, and keep a module-level `EMPTY_*` constant as the fallback to avoid creating a new array on every render.
 
 Each of the three persisted stores (`use-property-store`, `use-content-store`, `use-calendar-store`) exposes a `reset()` action used by the Configuración page: property store re-seeds to `mockProperties`, the other two clear their per-property maps. `use-auth-store` has no `reset()` — the user stays logged in across resets.
 
@@ -96,7 +98,17 @@ A 5-step progress bar (Datos → Generación → Contenido → Calendario → Co
 
 ### Calendar Default Schedule
 
-`useCalendarStore.createDefaultSchedule()` maps platforms to days on first visit: Facebook→Mon, Instagram Story→Tue, Instagram Carousel→Wed, LinkedIn→Thu, TikTok→Fri.
+`useCalendarStore.createDefaultSchedule()` maps platforms to days on first visit: Facebook→Mon, Instagram Story→Tue, Instagram Carousel→Wed, LinkedIn→Thu, TikTok→Fri. Each publication has a `timeSlot` (`HH:00`).
+
+### Calendar Timeline & Drag-and-Drop
+
+Step 4 (`/dashboard/calendario/[propertyId]`) renders a 6-column grid: 1 narrow column for the hours axis (08:00–20:00, hourly) and 5 day columns (lunes–viernes). Each day column is a `position: relative` container of fixed height (13 hours × `HOUR_HEIGHT` px) and contains 13 absolutely-positioned `TimelineSlot` droppables (one per hour) plus the publication cards positioned by their `timeSlot`.
+
+Drag-and-drop uses `@dnd-kit/core` (already in `package.json`). The page wraps the grid in a single `DndContext` with `pointerWithin` collision detection. Each card is a `useDraggable` (id = `pub.id`); each hour slot is a `useDroppable` (id = `${day}__${hour}`). On `onDragEnd`, the page parses the over-id and calls `useCalendarStore.movePublicationSlot(propertyId, pubId, newDay, newTime)` — a single store action that updates `dayOfWeek` and `timeSlot` together. The legacy `movePublication` action (day-only) is kept for API compatibility but no longer invoked from the page.
+
+When two publications fall on the same `${day}__${hour}` slot, they stack with a small `(offsetX, offsetY)` per stack index (sorted by id for stability) and ascending `zIndex`, so both remain visible. Hour rounding: `parseHour(timeSlot)` clamps to `[8, 20]` — any persisted half-hour values round down at render time, but new drops always snap to `HH:00`.
+
+The hours-axis labels render once on the left of the grid; the day column bodies do NOT repeat them.
 
 ### Image Server Libs (`src/lib/`)
 
